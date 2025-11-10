@@ -15,6 +15,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const spinButton = document.getElementById('botonGirar');
     const balanceDisplay = document.getElementById('saldo');
     const messageDisplay = document.getElementById('mensaje');
+    const rechargeButton = document.getElementById('recharge-button');
+    const rechargeModal = document.getElementById('recharge-modal');
+    const closeModalButton = document.getElementById('close-modal');
+    const rechargeOptions = [
+        document.getElementById('recharge-100'),
+        document.getElementById('recharge-1000'),
+        document.getElementById('recharge-10000'),
+    ];
 
     // Game State
     let balance = 100;
@@ -39,38 +47,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const finalSymbols = Array.from({ length: 3 }, () => SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
             finalReelSymbols.push(finalSymbols);
 
-            // Clear previous symbols
+            // ... (rest of the spinReels animation logic remains the same)
             reel.innerHTML = '';
-
-            // Create a container for symbols to animate
             const symbolContainer = document.createElement('div');
             reel.appendChild(symbolContainer);
-
-            // Populate with random symbols for animation
             for (let i = 0; i < 50; i++) {
                 const symbol = document.createElement('div');
                 symbol.className = 'symbol';
                 symbol.textContent = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
                 symbolContainer.appendChild(symbol);
             }
-
-            // Add final symbols at the end
             finalSymbols.forEach(s => {
                 const symbol = document.createElement('div');
                 symbol.className = 'symbol';
                 symbol.textContent = s;
                 symbolContainer.appendChild(symbol);
             });
-
-            // Animate
             symbolContainer.style.transition = `transform ${duration}ms cubic-bezier(0.25, 0.1, 0.25, 1)`;
             const REEL_HEIGHT = reel.clientHeight;
             const finalPosition = -(symbolContainer.scrollHeight - REEL_HEIGHT);
             symbolContainer.style.transform = `translateY(${finalPosition}px)`;
-
-            // After animation, clean up and set final state
             setTimeout(() => {
-                reel.innerHTML = ''; // Clear animation symbols
+                reel.innerHTML = '';
                 finalSymbols.forEach(s => {
                     const symbol = document.createElement('div');
                     symbol.className = 'symbol';
@@ -119,12 +117,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const handleRecharge = (amount) => {
+        balance += amount;
+        updateUI(0, `Se añadieron ${amount} créditos.`);
+        toggleModal(false);
+    };
+
+    const toggleModal = (show) => {
+        rechargeModal.style.display = show ? 'flex' : 'none';
+    };
+
     const updateUI = (winnings, message) => {
         balanceDisplay.textContent = balance;
         messageDisplay.textContent = message;
     };
 
-    // Initial setup
-    spinButton.addEventListener('click', spinReels);
-    updateUI(0, "¡Bienvenido!");
+    const initializeGame = () => {
+        spinButton.addEventListener('click', spinReels);
+        rechargeButton.addEventListener('click', () => toggleModal(true));
+        closeModalButton.addEventListener('click', () => toggleModal(false));
+        rechargeOptions.forEach(button => {
+            button.addEventListener('click', () => {
+                const amount = parseInt(button.dataset.amount, 10);
+                handleRecharge(amount);
+            });
+        });
+        updateUI(0, "¡Bienvenido!");
+    };
+
+    initializeGame();
 });
