@@ -1,33 +1,43 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Game Constants
     const REELS_COUNT = 5;
     const SYMBOLS = ['🍒', '🍋', '🍊', '🍉', '🍇', '🔔', '⭐', '７'];
-    const REEL_HEIGHT = 300; // As defined in CSS
-    const SYMBOL_HEIGHT = 100; // As defined in CSS for .symbol line-height
+    const SPIN_COST = 10;
+    const SYMBOL_BASE_VALUE = 1;
+    const PAYOUT_RULES = {
+        5: 15, // match_count: reward_multiplier
+        4: 5,
+        3: 2,
+    };
 
-    const reels = [];
-    for (let i = 1; i <= REELS_COUNT; i++) {
-        reels.push(document.getElementById(`reel-${i}`));
-    }
+    // DOM Elements
+    const reels = Array.from({ length: REELS_COUNT }, (_, i) => document.getElementById(`reel-${i + 1}`));
     const spinButton = document.getElementById('botonGirar');
     const balanceDisplay = document.getElementById('saldo');
     const messageDisplay = document.getElementById('mensaje');
 
+    // Game State
     let balance = 100;
+    let isSpinning = false;
 
-    const spin = () => {
-        if (balance <= 0) {
-            messageDisplay.textContent = "No tienes saldo para girar.";
+    const spinReels = () => {
+        if (isSpinning) return;
+        if (balance < SPIN_COST) {
+            updateUI(0, "Saldo insuficiente para girar.");
             return;
         }
-        balance -= 1;
-        updateBalance();
-        messageDisplay.textContent = "";
+
+        isSpinning = true;
+        balance -= SPIN_COST;
+        updateUI(0, "Girando...");
 
         let completedReels = 0;
+        const finalReelSymbols = [];
 
         reels.forEach((reel, index) => {
             const duration = 2000 + index * 500; // Staggered stop
             const finalSymbols = Array.from({ length: 3 }, () => SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
+            finalReelSymbols.push(finalSymbols);
 
             // Clear previous symbols
             reel.innerHTML = '';
@@ -37,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reel.appendChild(symbolContainer);
 
             // Populate with random symbols for animation
-            for (let i = 0; i < 50; i++) { // More symbols for a better blur effect
+            for (let i = 0; i < 50; i++) {
                 const symbol = document.createElement('div');
                 symbol.className = 'symbol';
                 symbol.textContent = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
@@ -54,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Animate
             symbolContainer.style.transition = `transform ${duration}ms cubic-bezier(0.25, 0.1, 0.25, 1)`;
+            const REEL_HEIGHT = reel.clientHeight;
             const finalPosition = -(symbolContainer.scrollHeight - REEL_HEIGHT);
             symbolContainer.style.transform = `translateY(${finalPosition}px)`;
 
@@ -68,31 +79,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 completedReels++;
                 if (completedReels === REELS_COUNT) {
-                    checkWin(reels.map(r => Array.from(r.children).map(c => c.textContent)));
+                    checkPaylines(finalReelSymbols);
+                    isSpinning = false;
                 }
             }, duration);
         });
     };
 
-    const checkWin = (finalReelSymbols) => {
-        // For this iteration, we'll just check the middle line
-        const middleSymbols = finalReelSymbols.map(reel => reel[1]);
+    const checkPaylines = (finalReels) => {
+        let totalWinnings = 0;
+        const paylines = [
+            finalReels.map(reel => reel[0]), // Top line
+            finalReels.map(reel => reel[1]), // Middle line
+            finalReels.map(reel => reel[2]), // Bottom line
+        ];
 
-        let win = false;
-        if (middleSymbols.every(s => s === middleSymbols[0])) {
-            win = true;
-            balance += 50; // Simple win amount
-            messageDisplay.textContent = "¡Ganaste 50 créditos!";
+        paylines.forEach(line => {
+            let consecutiveCount = 0;
+            const firstSymbol = line[0];
+            for (const symbol of line) {
+                if (symbol === firstSymbol) {
+                    consecutiveCount++;
+                } else {
+                    break;
+                }
+            }
+
+            if (PAYOUT_RULES[consecutiveCount]) {
+                const winAmount = SYMBOL_BASE_VALUE * PAYOUT_RULES[consecutiveCount];
+                totalWinnings += winAmount;
+            }
+        });
+
+        balance += totalWinnings;
+        if (totalWinnings > 0) {
+            updateUI(totalWinnings, `¡Ganaste ${totalWinnings} créditos!`);
         } else {
-             messageDisplay.textContent = "¡Inténtalo de nuevo!";
+            updateUI(0, "¡Inténtalo de nuevo!");
         }
-        updateBalance();
     };
 
-    const updateBalance = () => {
+    const updateUI = (winnings, message) => {
         balanceDisplay.textContent = balance;
+        messageDisplay.textContent = message;
     };
 
-    spinButton.addEventListener('click', spin);
-    updateBalance();
+    // Initial setup
+    spinButton.addEventListener('click', spinReels);
+    updateUI(0, "¡Bienvenido!");
 });

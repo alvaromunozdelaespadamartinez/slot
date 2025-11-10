@@ -5,6 +5,7 @@ body {
     height: 100vh;
     background-color: #f0f0f0;
     margin: 0;
+    font-family: "Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", "Twemoji Mozilla", "Noto Color Emoji", "Android Emoji", sans-serif;
 }
 
 .slot-machine {
