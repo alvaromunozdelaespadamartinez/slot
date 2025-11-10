@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Game Constants
     const REELS_COUNT = 5;
     const SYMBOLS = ['🍒', '🍋', '🍊', '🍉', '🍇', '🔔', '⭐', '７'];
-    const SPIN_COST = 10;
+    const SELECTABLE_BET_VALUES = [10, 50, 90, 130, 170, 210, 250];
     const SYMBOL_BASE_VALUE = 1;
     const PAYOUT_RULES = {
         5: 15, // match_count: reward_multiplier
@@ -23,31 +23,33 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('recharge-1000'),
         document.getElementById('recharge-10000'),
     ];
+    const betOptions = document.querySelectorAll('.bet-option');
+    const betDisplay = document.getElementById('bet-display');
 
     // Game State
     let balance = 100;
+    let currentBet = 10;
     let isSpinning = false;
 
     const spinReels = () => {
         if (isSpinning) return;
-        if (balance < SPIN_COST) {
+        if (balance < currentBet) {
             updateUI(0, "Saldo insuficiente para girar.");
             return;
         }
 
         isSpinning = true;
-        balance -= SPIN_COST;
+        balance -= currentBet;
         updateUI(0, "Girando...");
 
         let completedReels = 0;
         const finalReelSymbols = [];
 
         reels.forEach((reel, index) => {
-            const duration = 2000 + index * 500; // Staggered stop
+            const duration = 2000 + index * 500;
             const finalSymbols = Array.from({ length: 3 }, () => SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
             finalReelSymbols.push(finalSymbols);
 
-            // ... (rest of the spinReels animation logic remains the same)
             reel.innerHTML = '';
             const symbolContainer = document.createElement('div');
             reel.appendChild(symbolContainer);
@@ -85,11 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const checkPaylines = (finalReels) => {
-        let totalWinnings = 0;
+        let baseWinnings = 0;
         const paylines = [
-            finalReels.map(reel => reel[0]), // Top line
-            finalReels.map(reel => reel[1]), // Middle line
-            finalReels.map(reel => reel[2]), // Bottom line
+            finalReels.map(reel => reel[0]),
+            finalReels.map(reel => reel[1]),
+            finalReels.map(reel => reel[2]),
         ];
 
         paylines.forEach(line => {
@@ -105,16 +107,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (PAYOUT_RULES[consecutiveCount]) {
                 const winAmount = SYMBOL_BASE_VALUE * PAYOUT_RULES[consecutiveCount];
-                totalWinnings += winAmount;
+                baseWinnings += winAmount;
             }
         });
 
+        const totalWinnings = baseWinnings * currentBet;
         balance += totalWinnings;
+
         if (totalWinnings > 0) {
             updateUI(totalWinnings, `¡Ganaste ${totalWinnings} créditos!`);
         } else {
             updateUI(0, "¡Inténtalo de nuevo!");
         }
+    };
+
+    const handleBetChange = (newBet) => {
+        currentBet = newBet;
+        betDisplay.textContent = currentBet;
+        betOptions.forEach(opt => {
+            opt.classList.toggle('selected', parseInt(opt.dataset.bet) === newBet);
+        });
     };
 
     const handleRecharge = (amount) => {
@@ -142,6 +154,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 handleRecharge(amount);
             });
         });
+        betOptions.forEach(button => {
+            button.addEventListener('click', () => {
+                const bet = parseInt(button.dataset.bet, 10);
+                handleBetChange(bet);
+            });
+        });
+        handleBetChange(currentBet); // Set initial bet display
         updateUI(0, "¡Bienvenido!");
     };
 
