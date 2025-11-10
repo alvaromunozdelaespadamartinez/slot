@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rechargeButton = document.getElementById('recharge-button');
     const rechargeModal = document.getElementById('recharge-modal');
     const closeModalButton = document.getElementById('close-modal');
-    const rechargeOptions = Array.from(document.querySelectorAll('[id^="recharge-"]'));
+    const rechargeOptions = Array.from(document.querySelectorAll('#recharge-modal button[data-amount]'));
     const betOptions = document.querySelectorAll('.bet-option');
     const betDisplay = document.getElementById('bet-display');
     const bonusSlots = document.querySelectorAll('.bonus-slot');
@@ -34,6 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Main Game Cycle
     const startGameCycle = async () => {
+        if (isNaN(balance)) {
+            console.error('Error: Saldo was corrupted, resetting to 10000.');
+            balance = 10000;
+        }
         if (gameState !== 'IDLE') return;
         if (balance < currentBet) {
             updateUI("Saldo insuficiente.");
@@ -172,7 +176,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const addSymbol = (container) => container.appendChild(createSymbol());
 
     const updateUI = (message) => {
-        balanceDisplay.textContent = balance;
+        if (!Number.isFinite(balance)) {
+            console.error(`Invalid balance detected: ${balance}. UI will show 0.`);
+            balanceDisplay.textContent = 0;
+        } else {
+            balanceDisplay.textContent = balance;
+        }
+
         if(message) messageDisplay.textContent = message;
     };
 
@@ -198,7 +208,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const handleRecharge = (amount) => {
-        balance += amount;
+        if (isNaN(balance)) {
+            console.error('Error: Saldo was corrupted, resetting to 10000.');
+            balance = 10000;
+        }
+        balance += parseInt(amount, 10);
         updateUI(`Se añadieron ${amount} créditos.`);
         toggleModal('recharge', false);
     };
