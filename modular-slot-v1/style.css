@@ -51,7 +51,7 @@ body {
     gap: 15px;
 }
 
-#botonGirar, #recharge-button {
+#botonGirar, #recharge-button, #buy-bonus-button {
     padding: 12px 25px;
     font-size: 18px;
     font-weight: bold;
@@ -64,9 +64,13 @@ body {
     transition: all 0.2s ease-in-out;
 }
 
-#botonGirar:hover, #recharge-button:hover {
+#botonGirar:hover, #recharge-button:hover, #buy-bonus-button:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+#buy-bonus-button {
+    background: linear-gradient(45deg, #f09819, #edde5d);
 }
 
 #bet-selector {
@@ -154,9 +158,13 @@ body {
     transform: translateY(-2px);
 }
 
-#close-modal {
+#close-modal, #close-buy-modal {
     background: #ccc;
     color: #333;
+}
+
+.modal-content .buy-option {
+    background: linear-gradient(45deg, #88e768, #22a7f0);
 }
 
 #bonus-bar {

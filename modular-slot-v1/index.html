@@ -27,6 +27,7 @@
         <div class="controls">
             <button id="botonGirar">Girar</button>
             <button id="recharge-button">Recargar</button>
+            <button id="buy-bonus-button">Compra de Bono</button>
         </div>
         <div id="bet-selector">
             <span>Apuesta:</span>
@@ -51,6 +52,16 @@
             <button id="recharge-1000" data-amount="1000">1000 Créditos</button>
             <button id="recharge-10000" data-amount="10000">10000 Créditos</button>
             <button id="close-modal">Cerrar</button>
+        </div>
+    </div>
+
+    <div id="buy-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h2>Compra de Bono</h2>
+            <p>Elige la cantidad de scatters para iniciar la ronda de bonificación:</p>
+            <button class="buy-option" data-scatters="3">3 Scatters (Costo: <span class="cost-display"></span>)</button>
+            <button class="buy-option" data-scatters="5">5 Scatters (Costo: <span class="cost-display"></span>)</button>
+            <button id="close-buy-modal">Cerrar</button>
         </div>
     </div>
 

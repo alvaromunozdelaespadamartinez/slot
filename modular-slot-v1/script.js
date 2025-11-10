@@ -19,6 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const betOptions = document.querySelectorAll('.bet-option');
     const betDisplay = document.getElementById('bet-display');
     const bonusSlots = document.querySelectorAll('.bonus-slot');
+    const buyBonusButton = document.getElementById('buy-bonus-button');
+    const buyModal = document.getElementById('buy-modal');
+    const closeBuyModalButton = document.getElementById('close-buy-modal');
+    const buyOptions = document.querySelectorAll('.buy-option');
+
+    const BONUS_BUY_COSTS = { 3: 50, 5: 150 };
 
     // Game State
     let balance = 100;
@@ -88,8 +94,13 @@ document.addEventListener('DOMContentLoaded', () => {
             await handleCascade(wins.winningCoords);
             wins = checkPaylines();
         }
-        if (scatterCount >= 5) {
+        triggerBonus(scatterCount);
+    };
+
+    const triggerBonus = (scatters) => {
+        if (scatters >= 3) {
             updateUI("¡RONDA DE BONIFICACIÓN ACTIVADA!");
+            // Future logic for the bonus round will go here.
         }
     };
 
@@ -175,30 +186,63 @@ document.addEventListener('DOMContentLoaded', () => {
         currentBet = newBet;
         betDisplay.textContent = currentBet;
         betOptions.forEach(opt => opt.classList.toggle('selected', parseInt(opt.dataset.bet) === newBet));
+        updateBonusBuyModal();
+    };
+
+    const updateBonusBuyModal = () => {
+        buyOptions.forEach(button => {
+            const scatters = parseInt(button.dataset.scatters, 10);
+            const cost = BONUS_BUY_COSTS[scatters] * currentBet;
+            button.querySelector('.cost-display').textContent = cost;
+        });
     };
 
     const handleRecharge = (amount) => {
         balance += amount;
         updateUI(`Se añadieron ${amount} créditos.`);
-        toggleModal(false);
+        toggleModal('recharge', false);
     };
 
-    const toggleModal = (show) => {
-        rechargeModal.style.display = show ? 'flex' : 'none';
+    const handleBonusBuy = (scatterAmount) => {
+        const cost = BONUS_BUY_COSTS[scatterAmount] * currentBet;
+        if (balance >= cost) {
+            balance -= cost;
+            toggleModal('buy', false);
+            updateUI(`Compra de bono exitosa por ${cost}.`);
+            // Directly trigger the bonus round effects
+            triggerBonus(scatterAmount);
+        } else {
+            updateUI("Saldo insuficiente para comprar el bono.");
+        }
+    };
+
+    const toggleModal = (modalType, show) => {
+        const modal = modalType === 'recharge' ? rechargeModal : document.getElementById('buy-modal');
+        if (modal) modal.style.display = show ? 'flex' : 'none';
     };
 
     // Initialization
     const initializeGame = () => {
         spinButton.addEventListener('click', startGameCycle);
-        rechargeButton.addEventListener('click', () => toggleModal(true));
-        closeModalButton.addEventListener('click', () => toggleModal(false));
+        rechargeButton.addEventListener('click', () => toggleModal('recharge', true));
+        closeModalButton.addEventListener('click', () => toggleModal('recharge', false));
+        buyBonusButton.addEventListener('click', () => {
+            updateBonusBuyModal();
+            toggleModal('buy', true);
+        });
+        closeBuyModalButton.addEventListener('click', () => toggleModal('buy', false));
+
         rechargeOptions.forEach(button => {
             button.addEventListener('click', () => handleRecharge(parseInt(button.dataset.amount, 10)));
         });
         betOptions.forEach(button => {
             button.addEventListener('click', () => handleBetChange(parseInt(button.dataset.bet, 10)));
         });
+        buyOptions.forEach(button => {
+            button.addEventListener('click', () => handleBonusBuy(parseInt(button.dataset.scatters, 10)));
+        });
         handleBetChange(currentBet);
+        updateBonusBuyModal();
         updateUI("¡Bienvenido!");
     };
 
