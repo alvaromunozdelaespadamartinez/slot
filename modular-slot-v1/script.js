@@ -1,14 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Game Constants
     const REELS_COUNT = 5;
-    const SYMBOLS = ['🍒', '🍋', '🍊', '🍉', '🍇', '🔔', '⭐', '７'];
+    const SYMBOLS = ['🍒', '🍋', '🍊', '🍉', '🍇', '🔔', '⭐', '７', '💎'];
+    const SCATTER_SYMBOL = '💎';
     const SELECTABLE_BET_VALUES = [10, 50, 90, 130, 170, 210, 250];
     const SYMBOL_BASE_VALUE = 1;
-    const PAYOUT_RULES = {
-        5: 15, // match_count: reward_multiplier
-        4: 5,
-        3: 2,
-    };
+    const PAYOUT_RULES = { 5: 15, 4: 5, 3: 2 };
 
     // DOM Elements
     const reels = Array.from({ length: REELS_COUNT }, (_, i) => document.getElementById(`reel-${i + 1}`));
@@ -18,120 +15,171 @@ document.addEventListener('DOMContentLoaded', () => {
     const rechargeButton = document.getElementById('recharge-button');
     const rechargeModal = document.getElementById('recharge-modal');
     const closeModalButton = document.getElementById('close-modal');
-    const rechargeOptions = [
-        document.getElementById('recharge-100'),
-        document.getElementById('recharge-1000'),
-        document.getElementById('recharge-10000'),
-    ];
+    const rechargeOptions = Array.from(document.querySelectorAll('[id^="recharge-"]'));
     const betOptions = document.querySelectorAll('.bet-option');
     const betDisplay = document.getElementById('bet-display');
+    const bonusSlots = document.querySelectorAll('.bonus-slot');
 
     // Game State
     let balance = 100;
     let currentBet = 10;
-    let isSpinning = false;
+    let scatterCount = 0;
+    let gameState = 'IDLE'; // IDLE, SPINNING, CHECKING, CASCADING
 
-    const spinReels = () => {
-        if (isSpinning) return;
+    // Main Game Cycle
+    const startGameCycle = async () => {
+        if (gameState !== 'IDLE') return;
         if (balance < currentBet) {
-            updateUI(0, "Saldo insuficiente para girar.");
+            updateUI("Saldo insuficiente.");
             return;
         }
 
-        isSpinning = true;
+        gameState = 'SPINNING';
         balance -= currentBet;
-        updateUI(0, "Girando...");
+        scatterCount = 0;
+        updateUI("Girando...");
+        updateBonusBar();
 
-        let completedReels = 0;
-        const finalReelSymbols = [];
+        await spinReels();
 
-        reels.forEach((reel, index) => {
-            const duration = 2000 + index * 500;
-            const finalSymbols = Array.from({ length: 3 }, () => SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
-            finalReelSymbols.push(finalSymbols);
+        gameState = 'CHECKING';
+        await processWinsAndCascades();
 
-            reel.innerHTML = '';
-            const symbolContainer = document.createElement('div');
-            reel.appendChild(symbolContainer);
-            for (let i = 0; i < 50; i++) {
-                const symbol = document.createElement('div');
-                symbol.className = 'symbol';
-                symbol.textContent = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
-                symbolContainer.appendChild(symbol);
-            }
-            finalSymbols.forEach(s => {
-                const symbol = document.createElement('div');
-                symbol.className = 'symbol';
-                symbol.textContent = s;
-                symbolContainer.appendChild(symbol);
-            });
-            symbolContainer.style.transition = `transform ${duration}ms cubic-bezier(0.25, 0.1, 0.25, 1)`;
-            const REEL_HEIGHT = reel.clientHeight;
-            const finalPosition = -(symbolContainer.scrollHeight - REEL_HEIGHT);
-            symbolContainer.style.transform = `translateY(${finalPosition}px)`;
-            setTimeout(() => {
-                reel.innerHTML = '';
-                finalSymbols.forEach(s => {
-                    const symbol = document.createElement('div');
-                    symbol.className = 'symbol';
-                    symbol.textContent = s;
-                    reel.appendChild(symbol);
-                });
-                completedReels++;
-                if (completedReels === REELS_COUNT) {
-                    checkPaylines(finalReelSymbols);
-                    isSpinning = false;
-                }
-            }, duration);
-        });
+        if (gameState !== 'IDLE') { // Ensure we don't overwrite a bonus message
+            updateUI("¡Inténtalo de nuevo!");
+        }
+        gameState = 'IDLE';
     };
 
-    const checkPaylines = (finalReels) => {
+    const spinReels = () => {
+        const promises = reels.map((reel, index) => {
+            return new Promise(resolve => {
+                const duration = 2000 + index * 500;
+                reel.innerHTML = '';
+                const symbolContainer = document.createElement('div');
+                reel.appendChild(symbolContainer);
+
+                for (let i = 0; i < 50; i++) addSymbol(symbolContainer);
+                const finalSymbols = Array.from({ length: 3 }, () => createSymbol());
+                finalSymbols.forEach(s => symbolContainer.appendChild(s));
+
+                const finalPosition = -(symbolContainer.scrollHeight - reel.clientHeight);
+                symbolContainer.style.transition = `transform ${duration}ms cubic-bezier(0.25, 0.1, 0.25, 1)`;
+                symbolContainer.style.transform = `translateY(${finalPosition}px)`;
+
+                setTimeout(() => {
+                    reel.innerHTML = '';
+                    finalSymbols.forEach(s => reel.appendChild(s));
+                    resolve();
+                }, duration);
+            });
+        });
+        return Promise.all(promises);
+    };
+
+    const processWinsAndCascades = async () => {
+        let wins = checkPaylines();
+        while (wins.totalWinnings > 0) {
+            balance += wins.totalWinnings;
+            scatterCount += wins.scatters;
+            updateUI(`¡Ganaste ${wins.totalWinnings}!`);
+            updateBonusBar();
+
+            await handleCascade(wins.winningCoords);
+            wins = checkPaylines();
+        }
+        if (scatterCount >= 5) {
+            updateUI("¡RONDA DE BONIFICACIÓN ACTIVADA!");
+        }
+    };
+
+    const checkPaylines = () => {
         let baseWinnings = 0;
+        let scatters = 0;
+        const winningCoords = new Set();
+        const finalReels = reels.map(r => Array.from(r.children).map(c => c.textContent));
+
         const paylines = [
             finalReels.map(reel => reel[0]),
             finalReels.map(reel => reel[1]),
             finalReels.map(reel => reel[2]),
         ];
 
-        paylines.forEach(line => {
+        paylines.forEach((line, lineIndex) => {
             let consecutiveCount = 0;
             const firstSymbol = line[0];
             for (const symbol of line) {
-                if (symbol === firstSymbol) {
-                    consecutiveCount++;
-                } else {
-                    break;
-                }
+                if (symbol === firstSymbol) consecutiveCount++;
+                else break;
             }
 
             if (PAYOUT_RULES[consecutiveCount]) {
-                const winAmount = SYMBOL_BASE_VALUE * PAYOUT_RULES[consecutiveCount];
-                baseWinnings += winAmount;
+                baseWinnings += SYMBOL_BASE_VALUE * PAYOUT_RULES[consecutiveCount];
+                for (let i = 0; i < consecutiveCount; i++) {
+                    winningCoords.add(`${i},${lineIndex}`);
+                    if (line[i] === SCATTER_SYMBOL) scatters++;
+                }
             }
         });
 
-        const totalWinnings = baseWinnings * currentBet;
-        balance += totalWinnings;
+        return { totalWinnings: baseWinnings * currentBet, scatters, winningCoords: Array.from(winningCoords) };
+    };
 
-        if (totalWinnings > 0) {
-            updateUI(totalWinnings, `¡Ganaste ${totalWinnings} créditos!`);
-        } else {
-            updateUI(0, "¡Inténtalo de nuevo!");
-        }
+    const handleCascade = async (coords) => {
+        // Fade out winning symbols
+        coords.forEach(coord => {
+            const [reelIndex, symbolIndex] = coord.split(',').map(Number);
+            reels[reelIndex].children[symbolIndex].classList.add('fade-out');
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 500)); // Wait for fade out animation
+
+        reels.forEach((reel, reelIndex) => {
+            const remainingSymbols = Array.from(reel.children).filter(s => !s.classList.contains('fade-out'));
+            reel.innerHTML = '';
+
+            const newSymbolsCount = 3 - remainingSymbols.length;
+            for (let i = 0; i < newSymbolsCount; i++) {
+                const newSymbol = createSymbol();
+                newSymbol.classList.add('drop-in');
+                reel.appendChild(newSymbol);
+            }
+            remainingSymbols.forEach(s => reel.appendChild(s));
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 500)); // Wait for drop in animation
+    };
+
+    // UI and Helper Functions
+    const createSymbol = () => {
+        const symbol = document.createElement('div');
+        symbol.className = 'symbol';
+        symbol.textContent = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+        return symbol;
+    };
+
+    const addSymbol = (container) => container.appendChild(createSymbol());
+
+    const updateUI = (message) => {
+        balanceDisplay.textContent = balance;
+        if(message) messageDisplay.textContent = message;
+    };
+
+    const updateBonusBar = () => {
+        bonusSlots.forEach((slot, i) => {
+            slot.textContent = i < scatterCount ? SCATTER_SYMBOL : '';
+        });
     };
 
     const handleBetChange = (newBet) => {
         currentBet = newBet;
         betDisplay.textContent = currentBet;
-        betOptions.forEach(opt => {
-            opt.classList.toggle('selected', parseInt(opt.dataset.bet) === newBet);
-        });
+        betOptions.forEach(opt => opt.classList.toggle('selected', parseInt(opt.dataset.bet) === newBet));
     };
 
     const handleRecharge = (amount) => {
         balance += amount;
-        updateUI(0, `Se añadieron ${amount} créditos.`);
+        updateUI(`Se añadieron ${amount} créditos.`);
         toggleModal(false);
     };
 
@@ -139,29 +187,19 @@ document.addEventListener('DOMContentLoaded', () => {
         rechargeModal.style.display = show ? 'flex' : 'none';
     };
 
-    const updateUI = (winnings, message) => {
-        balanceDisplay.textContent = balance;
-        messageDisplay.textContent = message;
-    };
-
+    // Initialization
     const initializeGame = () => {
-        spinButton.addEventListener('click', spinReels);
+        spinButton.addEventListener('click', startGameCycle);
         rechargeButton.addEventListener('click', () => toggleModal(true));
         closeModalButton.addEventListener('click', () => toggleModal(false));
         rechargeOptions.forEach(button => {
-            button.addEventListener('click', () => {
-                const amount = parseInt(button.dataset.amount, 10);
-                handleRecharge(amount);
-            });
+            button.addEventListener('click', () => handleRecharge(parseInt(button.dataset.amount, 10)));
         });
         betOptions.forEach(button => {
-            button.addEventListener('click', () => {
-                const bet = parseInt(button.dataset.bet, 10);
-                handleBetChange(bet);
-            });
+            button.addEventListener('click', () => handleBetChange(parseInt(button.dataset.bet, 10)));
         });
-        handleBetChange(currentBet); // Set initial bet display
-        updateUI(0, "¡Bienvenido!");
+        handleBetChange(currentBet);
+        updateUI("¡Bienvenido!");
     };
 
     initializeGame();
