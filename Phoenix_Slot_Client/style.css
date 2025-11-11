@@ -10,12 +10,28 @@ body {
 }
 
 #game-container {
+    position: relative; /* Required for absolute positioning of the win display */
     text-align: center;
     background: rgba(10, 0, 0, 0.6);
     padding: 20px;
     border-radius: 15px;
     border: 2px solid #ff8c00;
     box-shadow: 0 0 30px #ff4500, inset 0 0 20px #ff8c00;
+}
+
+/* --- Total Win Display --- */
+#total-win-display {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 15px 25px;
+    border-radius: 10px;
+    border: 2px solid #ffc400;
+    box-shadow: 0 0 20px #ff8c00;
+    font-size: 1.5em;
+    color: #ffc400;
+    z-index: 10;
 }
 
 h1 {
@@ -39,6 +55,7 @@ h1 {
     gap: 20px;
 }
 
+/* --- SPIN Button Enhancements --- */
 #spin-button {
     background: linear-gradient(145deg, #ff4500, #d11a0a);
     color: white;
@@ -49,11 +66,29 @@ h1 {
     cursor: pointer;
     transition: all 0.3s;
     text-shadow: 0 0 5px #000;
+    /* Pulsing glow animation for idle state */
+    animation: pulse-glow 2s infinite;
 }
 
-#spin-button:hover {
-    box-shadow: 0 0 15px #ffc400;
+@keyframes pulse-glow {
+    0% { box-shadow: 0 0 10px #ffc400; }
+    50% { box-shadow: 0 0 25px #ffc400, 0 0 15px #ff8c00; }
+    100% { box-shadow: 0 0 10px #ffc400; }
 }
+
+#spin-button:disabled {
+    background: linear-gradient(145deg, #555, #333);
+    color: #888;
+    cursor: not-allowed;
+    animation: none; /* Turn off glow */
+    box-shadow: none; /* Remove any residual shadow */
+    border-color: #666;
+}
+
+#spin-button:hover:not(:disabled) {
+    box-shadow: 0 0 20px #ffc400, 0 0 10px #ff8c00;
+}
+
 
 #balance-display {
     font-size: 1.2em;
