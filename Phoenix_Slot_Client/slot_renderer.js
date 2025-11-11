@@ -114,14 +114,21 @@ class SlotRenderer {
         });
     }
 
-    // Placeholder for Free Spins bonus round
-    runFreeSpinsBonus() {
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.fillStyle = '#fffc00';
-        this.ctx.font = '24px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText("Free Spins Round in Progress", this.canvas.width / 2, this.canvas.height / 2);
+    // Simulates the Free Spins bonus round with a simple spin counter.
+    async runFreeSpinsBonus() {
+        const totalSpins = 10;
+        for (let i = 1; i <= totalSpins; i++) {
+            // Display the current spin number
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.fillStyle = '#fffc00';
+            this.ctx.font = '24px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(`Free Spin ${i} of ${totalSpins}`, this.canvas.width / 2, this.canvas.height / 2);
+
+            // Simulate a short delay for each spin
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
     }
 
     // Placeholder for Money Respin bonus round

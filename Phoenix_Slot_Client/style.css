@@ -81,3 +81,26 @@ h1 {
 #buy-freespins-button:hover, #buy-respin-button:hover {
     background-color: #9b59b6;
 }
+
+#bet-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #111;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+#bet-select {
+    font-size: 1em;
+    padding: 5px;
+    background-color: #333;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 3px;
+}
+
+#ante-bet-checkbox {
+    width: 18px;
+    height: 18px;
+}
