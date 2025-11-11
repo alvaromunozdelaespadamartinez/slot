@@ -94,4 +94,43 @@ class SlotRenderer {
             [`S${indices[0]+1}`, `S${indices[1]+1}`, `S${indices[2]+1}`, `S${indices[3]+1}`, `S${indices[4]+1}`]
         ];
     }
+
+    // Displays a message on the canvas to indicate a feature trigger
+    animateFeatureTrigger(featureName) {
+        return new Promise(resolve => {
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+            this.ctx.fillStyle = '#fff';
+            this.ctx.font = '30px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(`${featureName} Triggered!`, this.canvas.width / 2, this.canvas.height / 2);
+
+            setTimeout(() => {
+                this.drawInitialGrid(); // Clear the message after a delay
+                resolve();
+            }, 2000); // Display message for 2 seconds
+        });
+    }
+
+    // Placeholder for Free Spins bonus round
+    runFreeSpinsBonus() {
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillStyle = '#fffc00';
+        this.ctx.font = '24px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText("Free Spins Round in Progress", this.canvas.width / 2, this.canvas.height / 2);
+    }
+
+    // Placeholder for Money Respin bonus round
+    runMoneyRespinBonus() {
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillStyle = '#ff8c00';
+        this.ctx.font = '24px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText("Money Respin Round in Progress", this.canvas.width / 2, this.canvas.height / 2);
+    }
 }
