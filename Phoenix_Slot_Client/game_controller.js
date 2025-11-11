@@ -15,7 +15,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderer = new SlotRenderer(canvas);
     let balance = 100.00;
     let isSpinning = false;
-    const reelStripLength = 128;
+
+    // --- Placeholder Reel Strips ---
+    // In a real game, these would be much longer and defined in a separate config file.
+    const reelSymbols = ['SA', 'SB', 'SC', 'SD', 'LA', 'LK', 'LQ', 'LJ', 'L10', 'W2', 'ST', 'CH'];
+    const reelStrips = Array.from({ length: 5 }, () => {
+        // Simple shuffle for variety in this simulation
+        return reelSymbols.sort(() => Math.random() - 0.5);
+    });
+    const reelStripLength = reelStrips[0].length;
+    // --- End Reel Strips ---
 
     /**
      * Calculates the total current bet based on the selected base bet and Ante Bet.
@@ -28,6 +37,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return baseBet;
     }
 
+    /**
+     * Generates the final 3x5 grid from the server's reel stop indices.
+     * @param {number[]} indices - The array of 5 stop indices from the server.
+     * @returns {Array<Array<string>>} The 2D array representing the final grid.
+     */
+    function generateFinalGrid(indices) {
+        const finalGrid = [[], [], []]; // 3 rows
+        indices.forEach((stopIndex, reel) => {
+            const reelStrip = reelStrips[reel];
+            const stripLen = reelStrip.length;
+            // Top symbol (index above the stop index)
+            finalGrid[0][reel] = reelStrip[(stopIndex - 1 + stripLen) % stripLen];
+            // Middle symbol (the stop index)
+            finalGrid[1][reel] = reelStrip[stopIndex];
+            // Bottom symbol (index below the stop index)
+            finalGrid[2][reel] = reelStrip[(stopIndex + 1) % stripLen];
+        });
+        return finalGrid;
+    }
+
     function initializeGame() {
         balanceAmountSpan.textContent = balance.toFixed(2);
         renderer.drawInitialGrid();
@@ -36,9 +65,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function simulateServerResponse() {
         return new Promise(resolve => {
             const initial_reel_indices = Array.from({ length: 5 }, () => Math.floor(Math.random() * reelStripLength));
+
+            // --- Simulate a win that includes a WILD ---
+            let total_win_amount = 0;
+            let winning_positions = [];
+            // 50% chance to simulate a win for demonstration
+            if (Math.random() < 0.5) {
+                total_win_amount = 25.00;
+                // For this simulation, let's say the win is on the middle row and includes a WILD
+                winning_positions = [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 }];
+                // Force a WILD to be in one of these positions
+                const wildReel = Math.floor(Math.random() * 3); // 0, 1, or 2
+                const wildIndex = reelStrips[wildReel].indexOf('W2');
+                if (wildIndex !== -1) {
+                    initial_reel_indices[wildReel] = wildIndex;
+                }
+            }
+            // --- End Simulation ---
+
             const response = {
                 initial_reel_indices: initial_reel_indices,
-                total_win_amount: 0.00,
+                total_win_amount: total_win_amount,
+                winning_positions: winning_positions
             };
             setTimeout(() => resolve(response), 200);
         });
@@ -59,7 +107,14 @@ document.addEventListener('DOMContentLoaded', () => {
         balanceAmountSpan.textContent = balance.toFixed(2);
 
         const spinResult = await simulateServerResponse();
-        await renderer.animateReelsStop(spinResult.initial_reel_indices);
+        const finalGrid = generateFinalGrid(spinResult.initial_reel_indices);
+
+        await renderer.animateReelsStop(finalGrid);
+
+        // ** FEATURE IMPLEMENTATION: Highlight winning WILDs after animation **
+        if (spinResult.winning_positions && spinResult.winning_positions.length > 0) {
+            renderer.drawGrid(finalGrid, spinResult.winning_positions);
+        }
 
         setTimeout(() => {
             balance += spinResult.total_win_amount;
