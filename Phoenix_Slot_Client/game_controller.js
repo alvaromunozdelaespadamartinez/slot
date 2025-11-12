@@ -17,10 +17,33 @@ document.addEventListener('DOMContentLoaded', () => {
     let balance = 100.00;
     let isSpinning = false;
 
-    // --- Placeholder Reel Strips ---
-    const reelSymbols = ['SA', 'SB', 'SC', 'SD', 'LA', 'LK', 'LQ', 'LJ', 'L10', 'W2', 'ST', 'CH'];
-    const reelStrips = Array.from({ length: 5 }, () => reelSymbols.sort(() => Math.random() - 0.5));
-    const reelStripLength = reelStrips[0].length;
+    // --- Pay Tables & Paylines ---
+    const paylines = [[1, 1, 1, 1, 1]]; // Middle row for simplicity
+    const paytable = {
+        'SA': { 3: 5, 4: 10, 5: 20 },
+        'SB': { 3: 4, 4: 8, 5: 16 },
+        'SC': { 3: 3, 4: 6, 5: 12 },
+        'SD': { 3: 2, 4: 4, 5: 8 },
+        'LA': { 3: 1, 4: 2, 5: 4 },
+        'LK': { 3: 0.8, 4: 1.6, 5: 3.2 },
+        'LQ': { 3: 0.6, 4: 1.2, 5: 2.4 },
+        'LJ': { 3: 0.4, 4: 0.8, 5: 1.6 },
+        'L10': { 3: 0.2, 4: 0.4, 5: 0.8 }
+    };
+
+    // --- Weighted Reel Strips for RTP Control ---
+    const REEL_WEIGHTS = [
+        // Reel 1
+        ['L10', 'LJ', 'LQ', 'LK', 'LA', 'L10', 'LJ', 'LQ', 'LK', 'LA', 'L10', 'LJ', 'LQ', 'SC', 'SD', 'SA', 'SB', 'W2', 'ST', 'SC', 'SD', 'SA', 'SB'],
+        // Reel 2
+        ['L10', 'LJ', 'LQ', 'LK', 'LA', 'L10', 'LJ', 'LQ', 'LK', 'LA', 'L10', 'LJ', 'LQ', 'SC', 'SD', 'SA', 'SB', 'SC', 'SD', 'SA', 'SB', 'ST'],
+        // Reel 3
+        ['L10', 'LJ', 'LQ', 'LK', 'LA', 'L10', 'LJ', 'LQ', 'LK', 'LA', 'L10', 'LJ', 'LQ', 'SC', 'SD', 'SA', 'SB', 'W2', 'SC', 'SD', 'SA', 'SB', 'ST'],
+        // Reel 4
+        ['L10', 'LJ', 'LQ', 'LK', 'LA', 'L10', 'LJ', 'LQ', 'LK', 'LA', 'L10', 'LJ', 'LQ', 'SC', 'SD', 'SA', 'SB', 'SC', 'SD', 'SA', 'SB', 'ST'],
+        // Reel 5
+        ['L10', 'LJ', 'LQ', 'LK', 'LA', 'L10', 'LJ', 'LQ', 'LK', 'LA', 'L10', 'LJ', 'LQ', 'SC', 'SD', 'SA', 'SB', 'W2', 'ST', 'SC', 'SD', 'SA', 'SB']
+    ];
     // --- End Reel Strips ---
 
     function getCurrentTotalBet() {
@@ -29,18 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return baseBet * 1.30;
         }
         return baseBet;
-    }
-
-    function generateFinalGrid(indices) {
-        const finalGrid = [[], [], []];
-        indices.forEach((stopIndex, reel) => {
-            const reelStrip = reelStrips[reel];
-            const stripLen = reelStrip.length;
-            finalGrid[0][reel] = reelStrip[(stopIndex - 1 + stripLen) % stripLen];
-            finalGrid[1][reel] = reelStrip[stopIndex];
-            finalGrid[2][reel] = reelStrip[(stopIndex + 1) % stripLen];
-        });
-        return finalGrid;
     }
 
     /**
@@ -80,22 +91,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function simulateServerResponse() {
         return new Promise(resolve => {
-            const initial_reel_indices = Array.from({ length: 5 }, () => Math.floor(Math.random() * reelStripLength));
+            const finalGrid = Array.from({ length: 3 }, () => Array(5).fill(null));
+            for (let col = 0; col < 5; col++) {
+                const reel = REEL_WEIGHTS[col];
+                const stopIndex = Math.floor(Math.random() * reel.length);
 
-            let total_win_for_spin = 0;
-            let winning_positions = [];
-            if (Math.random() < 0.7) { // Increased win chance for demo
-                total_win_for_spin = (Math.random() * 5 + 1) * getCurrentTotalBet();
-                winning_positions = [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 }];
-                const wildReel = Math.floor(Math.random() * 3);
-                const wildIndex = reelStrips[wildReel].indexOf('W2');
-                if (wildIndex !== -1) initial_reel_indices[wildReel] = wildIndex;
+                // This simulates a circular reel strip
+                finalGrid[0][col] = reel[(stopIndex - 1 + reel.length) % reel.length];
+                finalGrid[1][col] = reel[stopIndex];
+                finalGrid[2][col] = reel[(stopIndex + 1) % reel.length];
             }
 
+            const { totalWin, winningPositions } = checkPaylines(finalGrid);
+
             const response = {
-                initial_reel_indices: initial_reel_indices,
-                total_win_for_spin: total_win_for_spin,
-                winning_positions: winning_positions
+                final_grid: finalGrid,
+                total_win_for_spin: totalWin,
+                winning_positions: winningPositions
             };
             setTimeout(() => resolve(response), 200);
         });
@@ -117,12 +129,11 @@ document.addEventListener('DOMContentLoaded', () => {
         balanceAmountSpan.textContent = balance.toFixed(2);
 
         const spinResult = await simulateServerResponse();
-        const finalGrid = generateFinalGrid(spinResult.initial_reel_indices);
 
-        await renderer.animateReelsStop(finalGrid);
+        await renderer.animateReelsStop(spinResult.final_grid);
 
         if (spinResult.winning_positions && spinResult.winning_positions.length > 0) {
-            renderer.drawGrid(finalGrid, spinResult.winning_positions);
+            renderer.drawGrid(spinResult.final_grid, spinResult.winning_positions);
         }
 
         // Handle win amount update and animation
@@ -142,50 +153,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function handleBuyFreeSpins() {
-        if (isSpinning) return;
-        const baseBet = parseFloat(betSelect.value);
-        const cost = 100 * baseBet;
-        if (balance < cost) {
-            alert('Insufficient funds for Buy Feature.');
-            return;
-        }
-
-        isSpinning = true;
-        setControlsDisabled(true);
-
-        balance -= cost;
-        balanceAmountSpan.textContent = balance.toFixed(2);
-
-        console.log('Free Spins Purchased!');
-        // In a real game, server would provide bonus outcome. Here we simulate it.
-        const bonusWin = baseBet * (Math.random() * 150 + 50); // Simulate a win between 50x and 200x
-
-        await renderer.runFreeSpinsBonus(); // Placeholder for bonus animation
-
-        balance += bonusWin;
-        balanceAmountSpan.textContent = balance.toFixed(2);
-        animateWinCounter(bonusWin, 2500); // Longer animation for feature win
-
-        setTimeout(() => {
-            isSpinning = false;
-            setControlsDisabled(false);
-        }, 2600);
-    }
-
     function setControlsDisabled(state) {
         spinButton.disabled = state;
-        buyFreeSpinsButton.disabled = state;
-        buyRespinButton.disabled = state;
         betSelect.disabled = state;
         anteBetCheckbox.disabled = state;
     }
 
     // Attach event listeners
     spinButton.addEventListener('click', handleSpin);
-    buyFreeSpinsButton.addEventListener('click', handleBuyFreeSpins);
-    // Placeholder for respin buy
-    buyRespinButton.addEventListener('click', () => alert('Money Respin feature not implemented in this version.'));
+    buyFreeSpinsButton.addEventListener('click', () => console.log('Buy Free Spins feature is not implemented in this version.'));
+    buyRespinButton.addEventListener('click', () => console.log('Money Respin feature is not implemented in this version.'));
+
+    function checkPaylines(grid) {
+        let totalWin = 0;
+        const winningPositions = new Set();
+        const reels = 5;
+
+        paylines.forEach(line => {
+            let lineSymbol = null;
+            let count = 0;
+            let potentialPositions = [];
+            let wildInLine = false;
+
+            for (let i = 0; i < reels; i++) {
+                const row = line[i];
+                const symbol = grid[row][i];
+
+                if (symbol === 'W2') { // Wilds contribute to any line
+                    wildInLine = true;
+                    if(lineSymbol !== null) count++;
+                    potentialPositions.push({ row, col: i });
+                    continue;
+                }
+
+                if (lineSymbol === null) {
+                    lineSymbol = symbol;
+                    count = 1;
+                    potentialPositions.push({ row, col: i });
+                } else if (symbol === lineSymbol) {
+                    count++;
+                    potentialPositions.push({ row, col: i });
+                } else {
+                    break;
+                }
+            }
+
+            if (paytable[lineSymbol] && paytable[lineSymbol][count]) {
+                let baseWin = paytable[lineSymbol][count];
+                const betAmount = parseFloat(betSelect.value); // Use the base bet for payline calculations
+                let finalWin = baseWin * betAmount;
+                if (wildInLine) {
+                    finalWin *= 2;
+                }
+                totalWin += finalWin;
+                potentialPositions.forEach(p => winningPositions.add(`${p.row},${p.col}`));
+            }
+        });
+
+        const winningPositionsArray = Array.from(winningPositions).map(p => {
+            const [row, col] = p.split(',').map(Number);
+            return { row, col };
+        });
+
+        return { totalWin, winningPositions: winningPositionsArray };
+    }
 
     initializeGame();
 });
