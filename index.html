@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phoenix Slot - V1 Recovery</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Main Game Canvas where the slot machine is rendered -->
+        <canvas id="slot-canvas" width="800" height="600"></canvas>
+
+        <!-- Floating Display for Total Win -->
+        <div id="total-win-display" class="total-win-display">
+            <span>TOTAL WIN</span>
+            <p>$0.00</p>
+        </div>
+
+        <!-- Main UI Control Panel -->
+        <div class="ui-controls">
+            <!-- Left Side: Balance and Bet Information -->
+            <div class="info-displays">
+                <div class="display-box">
+                    <span>BALANCE</span>
+                    <p id="balance-display">$1000.00</p>
+                </div>
+                <div class="display-box">
+                    <span>TOTAL BET</span>
+                    <p id="total-bet-display">$1.00</p>
+                </div>
+            </div>
+
+            <!-- Center: Core Game Controls -->
+            <div class="game-controls">
+                <div class="control-group">
+                    <label for="bet-selector">BET</label>
+                    <select id="bet-selector">
+                        <option value="0.20">$0.20</option>
+                        <option value="0.40">$0.40</option>
+                        <option value="0.60">$0.60</option>
+                        <option value="1.00" selected>$1.00</option>
+                        <option value="2.00">$2.00</option>
+                        <option value="5.00">$5.00</option>
+                        <option value="10.00">$10.00</option>
+                    </select>
+                </div>
+
+                <button id="spin-button" class="spin-button">SPIN</button>
+
+                <div class="control-group">
+                    <label for="ante-bet-toggle">ANTE BET</label>
+                    <input type="checkbox" id="ante-bet-toggle" class="ante-bet-toggle">
+                    <span class="ante-bet-cost">(+30% Cost)</span>
+                </div>
+            </div>
+
+            <!-- Right Side: Feature Buy Buttons -->
+            <div class="feature-buy">
+                <button id="buy-free-spins" class="feature-button">
+                    <span>BUY FREE SPINS</span>
+                    <small>COST: $100.00</small>
+                </button>
+                <button id="buy-money-respin" class="feature-button">
+                    <span>BUY MONEY RESPIN</span>
+                    <small>COST: $80.00</small>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Loading: Renderer must be loaded before the Controller -->
+    <script src="slot_renderer.js"></script>
+    <script src="game_controller.js"></script>
+</body>
+</html>
