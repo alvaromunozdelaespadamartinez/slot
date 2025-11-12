@@ -27,6 +27,12 @@ A constant, 2D array holding the complete, weighted symbol sequences for each of
 **`ANTE_BET_REEL_STRIPS`**
 A separate constant, 2D array used only when the Ante Bet is active, featuring a higher frequency of SCATTER_Bonus symbols.
 
+**`RUNE_MYSTERY_SYMBOL`**
+A new special symbol (`RUNE_MYSTERY`) that can appear on the reels.
+
+*   **Integration:** This symbol should be added to the `SERVER_REEL_STRIPS` with a medium rarity to maintain high volatility.
+*   **Transformation Targets:** `RUNE_MYSTERY` can transform into any High-Pay, Low-Pay, or CASH symbol. It **cannot** become a `WILD_x2` or `SCATTER_Bonus`.
+
 > **SECURITY CONSTRAINT:** The `SERVER_REEL_STRIPS` and `ANTE_BET_REEL_STRIPS` data structures are the "keys to the kingdom." They **MUST NOT** be exposed to any client-side code (`game_controller.js`, `slot_renderer.js`, etc.). Their contents and the logic for stop selection must remain entirely within the secure server environment to prevent reverse-engineering of the game's RTP and volatility.
 
 ### 2.3. Main Spin Execution Loop
@@ -52,15 +58,27 @@ FUNCTION EXECUTE_NEW_SPIN(player_id, bet_amount, ante_bet_active):
     initial_reel_indices = CALCULATE_REEL_STOPS(spin_seed, active_reel_strips)
     initial_grid = GenerateGridFromStops(initial_reel_indices, active_reel_strips)
 
-    // === STEP 5: INITIAL EVALUATION & TUMBLE LOOP ===
-    tumble_result = ExecuteTumbleLoop(initial_grid, bet_amount / 20, bet_amount)
+    // === STEP 5: BOARD TRANSFORMATION (RUNE_MYSTERY) ===
+    transformed_grid = initial_grid
+    mystery_transform_symbol = NULL
+    IF GridContainsSymbol(initial_grid, "RUNE_MYSTERY"):
+        // Use the spin seed to deterministically select a target symbol.
+        // The list of valid targets excludes SCATTER_Bonus and WILD_x2.
+        target_symbol = SelectMysteryTargetSymbol(spin_seed)
+
+        // Replace all RUNE_MYSTERY instances with the chosen target symbol.
+        transformed_grid = ReplaceSymbolOnGrid(initial_grid, "RUNE_MYSTERY", target_symbol)
+        mystery_transform_symbol = target_symbol
+
+    // === STEP 6: INITIAL EVALUATION & TUMBLE LOOP ===
+    tumble_result = ExecuteTumbleLoop(transformed_grid, bet_amount / 20, bet_amount)
     total_win = tumble_result.total_win_for_spin
     final_grid = tumble_result.final_grid
 
-    // === STEP 6: FEATURE CHECKS ===
+    // === STEP 7: FEATURE CHECKS ===
     // Priority 1: Money Respin Bonus
     is_money_respin_triggered = FALSE
-    initial_cash_count = CountSymbolsOnGrid(initial_grid, "CASH")
+    initial_cash_count = CountSymbolsOnGrid(transformed_grid, "CASH") // Check on the transformed grid
     IF initial_cash_count >= 6:
         is_money_respin_triggered = TRUE
         // Payline wins are paid out, then the bonus is initiated.
@@ -69,12 +87,12 @@ FUNCTION EXECUTE_NEW_SPIN(player_id, bet_amount, ante_bet_active):
     is_free_spins_triggered = FALSE
     free_spins_awarded = 0
     IF NOT is_money_respin_triggered:
-        initial_scatter_count = CountSymbolsOnGrid(initial_grid, "SCATTER_Bonus")
+        initial_scatter_count = CountSymbolsOnGrid(initial_grid, "SCATTER_Bonus") // Scatters are checked on the initial grid
         IF initial_scatter_count >= 3:
             is_free_spins_triggered = TRUE
             free_spins_awarded = 10
 
-    // === STEP 7: RESPONSE GENERATION ===
+    // === STEP 8: RESPONSE GENERATION ===
     CreditPlayerBalance(player_id, total_win)
     new_balance = GetPlayerBalance(player_id)
 
@@ -83,6 +101,7 @@ FUNCTION EXECUTE_NEW_SPIN(player_id, bet_amount, ante_bet_active):
         total_win_amount: total_win,
         initial_reel_indices: initial_reel_indices,
         final_grid: final_grid,
+        mystery_transform_to: mystery_transform_symbol, // Inform client of the transformation
         is_free_spins_triggered: is_free_spins_triggered,
         free_spins_awarded: free_spins_awarded,
         is_money_respin_triggered: is_money_respin_triggered
