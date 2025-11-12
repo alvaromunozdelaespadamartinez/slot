@@ -1,0 +1,182 @@
+/* --- Global Styles & Body --- */
+body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    background-color: #1a1a1a;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* --- Game Container --- */
+.game-container {
+    position: relative;
+    width: 1000px;
+    height: 750px;
+    background-color: #000;
+    border: 5px solid #ff4500;
+    box-shadow: 0 0 20px #ff4500, inset 0 0 15px rgba(255, 69, 0, 0.5);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+#slot-canvas {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 600px;
+}
+
+/* --- Total Win Display --- */
+.total-win-display {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    text-align: right;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 8px;
+    border: 2px solid #ff8c00;
+    z-index: 10;
+}
+.total-win-display span {
+    font-size: 1em;
+    color: #ff8c00;
+}
+.total-win-display p {
+    font-size: 1.8em;
+    font-weight: bold;
+    margin: 5px 0 0 0;
+}
+
+/* --- UI Controls --- */
+.ui-controls {
+    width: 100%;
+    height: 150px;
+    background: linear-gradient(to top, #1c1c1c, #333);
+    border-top: 3px solid #ff4500;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+/* Info Displays (Balance, Total Bet) */
+.info-displays {
+    display: flex;
+    gap: 20px;
+}
+.display-box {
+    text-align: center;
+}
+.display-box span {
+    font-size: 0.9em;
+    color: #aaa;
+}
+.display-box p {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 5px 0 0 0;
+}
+
+/* Main Game Controls (Bet, Spin) */
+.game-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.control-group label {
+    font-size: 0.8em;
+    margin-bottom: 5px;
+}
+select, input[type="checkbox"] {
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #ff8c00;
+    padding: 8px;
+    border-radius: 5px;
+}
+
+/* --- Spin Button --- */
+.spin-button {
+    padding: 20px 40px;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #fff;
+    background-color: #ff4500;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+    box-shadow: 0 0 15px #ff8c00;
+    animation: glow-idle 2s infinite ease-in-out;
+}
+.spin-button:hover {
+    background-color: #ff6a00;
+}
+.spin-button:active {
+    transform: scale(0.95);
+}
+.spin-button:disabled {
+    background-color: #555;
+    color: #888;
+    cursor: not-allowed;
+    box-shadow: none;
+    animation: none;
+}
+
+@keyframes glow-idle {
+    0%, 100% { box-shadow: 0 0 15px #ff8c00; }
+    50% { box-shadow: 0 0 25px #ffae42; }
+}
+
+/* Ante Bet Toggle */
+.ante-bet-toggle {
+    width: 20px;
+    height: 20px;
+}
+.ante-bet-cost {
+    font-size: 0.7em;
+    color: #aaa;
+}
+
+/* Feature Buy Buttons */
+.feature-buy {
+    display: flex;
+    gap: 15px;
+}
+.feature-button {
+    background-color: #800080;
+    color: #fff;
+    border: 2px solid #da70d6;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    text-align: center;
+}
+.feature-button:hover {
+    background-color: #9932cc;
+}
+.feature-button span {
+    font-size: 0.9em;
+    font-weight: bold;
+}
+.feature-button small {
+    display: block;
+    font-size: 0.8em;
+    margin-top: 5px;
+}
